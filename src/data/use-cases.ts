@@ -3,177 +3,172 @@ import { UseCase } from "@/lib/types";
 export const USE_CASES: UseCase[] = [
   {
     value: "e-commerce-bot",
-    label: "E-commerce Recs Bot",
-    description: `An e-commerce platform uses a multi-agent system for personalized recommendations.
-- An 'Observer' agent monitors user behavior (clicks, searches, purchases) via A2A messages.
-- A 'Profile' agent maintains a dynamic user profile, updating it based on inputs from the Observer.
-- An 'MCP Server' provides universal tool integration. It exposes a 'ProductDB' tool for querying product information and a 'UserProfile' tool for accessing user data with robust security.
-- A 'Recommender' agent, via the MCP, queries the 'ProductDB' tool and the 'UserProfile' tool to generate tailored recommendations.
-- A 'Query' agent uses an external tool (e.g., Google Search), also integrated via MCP, to fetch reviews for recommended products.
-Communication is primarily A2A for agent coordination, while MCP handles all secure and standardized tool/data interactions. The system runs on a cloud server.`,
+    label: "电商推荐机器人",
+    description: `一个电商平台使用多智能体系统进行个性化推荐。
+    - 一个'观察者'智能体通过 A2A 消息监控用户行为（点击、搜索、购买）。
+    - 一个'档案'智能体根据来自观察者的输入维护动态用户档案。
+    - 一个 'MCP 服务器'提供通用工具集成。它公开用于查询产品信息的 'ProductDB' 工具和用于访问用户数据的 'UserProfile' 工具，具有强大的安全性。
+    - 一个'推荐者'智能体，通过 MCP，查询 'ProductDB' 工具和 'UserProfile' 工具以生成定制推荐。
+    - 一个'查询'智能体使用外部工具（例如，Google 搜索），也通过 MCP 集成，获取推荐产品的评论。
+    - 通信主要使用 A2A 进行智能体协调，而 MCP 处理所有安全和标准化的工具/数据交互。系统在云服务器上运行。`,
   },
   {
     value: "travel-planner",
-    label: "Automated Travel Planner",
-    description: `A System for Planning User Travel Itineraries (with MCP + A2A)
-Agents and MCP Server Tools
-TripRequest Agent
+    label: "自动旅行规划器",
+    description: `一个用于规划用户旅行行程的系统（带 MCP + A2A）
 
-Role: Parses the user’s natural language requests.
+智能体和 MCP 服务器工具
+行程请求智能体
+    角色：解析用户的自然语言请求。
 
-MCP Server Tools:
+MCP 服务器工具：
 
-NLU Parser (extracts structured entities like destination, dates, budget).
-Constraint Validator (checks feasibility of requests).
-Request Normalizer (converts parsed requests into standardized MCP request objects).
+    NLU 解析器（提取结构化实体，如目的地、日期、预算）。
+    约束验证器（检查请求的可行性）。
+    请求规范化器（将解析的请求转换为标准化的 MCP 请求对象）。
 
-Communication: Exports normalized trip requests via A2A protocol.
+    通信：通过 A2A 协议导出规范化的行程请求。
 
-Flight Agent
+航班智能体
+    角色：搜索航班。
 
-Role: Searches for flights.
+    MCP 服务器工具：
 
-MCP Server Tools:
+    航班搜索 API（查询航空公司数据库）。
+    价格优化器（根据预算/时间筛选航班）。
+    预订验证器（检查座位可用性和规则）。
 
-FlightSearch API (queries airline databases).
-PriceOptimizer (filters flights by budget/time).
-Booking Validator (checks seat availability and rules).
+    通信：接受来自 A2A 的 MCP 格式化行程请求，并响应 MCP 航班选项。
 
-Communication: Accepts MCP-formatted trip requests from A2A, responds with MCP flight options.
+酒店智能体
+    角色：寻找住宿。
 
-Hotel Agent
+    MCP 服务器工具：
 
-Role: Finds accommodations.
+    酒店搜索 API（查询预订提供商）。
+    房间匹配器（将酒店与团体规模、预算、偏好匹配）。
+    可用性检查器（确保房间与所选航班对齐）。
 
-MCP Server Tools:
+    通信：接收来自航班智能体的上下文（例如，旅行日期）通过 A2A，以 MCP 格式响应。
 
-HotelSearch API (queries booking providers).
-RoomMatcher (matches hotels to group size, budget, preferences).
-AvailabilityChecker (ensures rooms align with selected flights).
+活动智能体
+    角色：建议当地景点和活动。
 
-Communication: Receives context (e.g., travel dates from Flight Agent) via A2A, responds in MCP format.
+    MCP 服务器工具：
 
-Activity Agent
+    景点查找器（查询当地活动和兴趣点）。
+    推荐引擎（根据用户兴趣、季节性筛选）。
+    时间安排对齐器（确保活动适合航班/酒店入住时间之间）。
 
-Role: Suggests local attractions and activities.
+    通信：使用 A2A 与行程上下文同步，并返回 MCP 结构化活动集。
 
-MCP Server Tools:
+行程智能体
+    角色：协调所有其他智能体，编译最终计划。
 
-AttractionFinder (queries local events and POIs).
-RecommendationEngine (filters by user interests, seasonality).
-ScheduleAligner (ensures activities fit between flights/hotel check-in).
+    MCP 服务器工具：
 
-Communication: Uses A2A to sync with itinerary context and returns MCP-structured activity sets.
+    依赖管理器（强制排序：航班 → 酒店 → 活动）。
+    计划组合器（将智能体响应合并为统一的行程）。
+    冲突解决器（处理重叠或预算冲突）。
 
-Itinerary Agent
+    通信：通过 A2A 将任务委托给智能体，聚合所有 MCP 响应，输出最终旅行计划。
 
-Role: Coordinates all other agents, compiles the final plan.
+协议角色
 
-MCP Server Tools:
+    MCP（模型上下文协议）：
+    提供结构化工具接口（API、验证器、优化器）。
+    确保所有智能体之间的统一请求/响应表示。
 
-DependencyManager (enforces ordering: flights → hotels → activities).
-PlanComposer (merges agent responses into a unified itinerary).
-ConflictResolver (handles overlaps or budget conflicts).
-
-Communication: Delegates tasks to agents via A2A, aggregates all MCP responses, outputs the final travel plan.
-
-Protocol Roles
-MCP (Model Context Protocol):
-
-Provides structured tool interfaces (APIs, validators, optimizers).
-Ensures uniform request/response representation across agents.
-
-A2A (Agent-to-Agent Protocol):
-
-Capability Discovery (Agent Cards, metadata, dynamic agent finding)
-Task Management (creation, delegation, monitoring, completion, task state)
-Multimodal Data Exchange (text, images, audio, video)
-Standardized Protocols (HTTP, JSON-RPC, SSE)
-Security and Authentication (support for multiple auth methods, encryption, RBAC)
-Support for Long-Running Tasks (asynchronous workflows, server-sent updates)
-User Experience Negotiation (negotiated content and UI format adaptation)`,
+    A2A（智能体到智能体协议）：
+    能力发现（智能体卡、元数据、动态智能体查找）。
+    任务管理（创建、委托、监控、完成、任务状态）。
+    多模态数据交换（文本、图像、音频、视频）。
+    标准化协议（HTTP、JSON-RPC、SSE）。
+    安全和认证（支持多种认证方法、加密、RBAC）。
+    长期任务支持（异步工作流、服务器发送更新）。
+    用户体验协商（协商内容和 UI 格式适配）`,
   },
   {
     value: "smart-home",
-    label: "Smart Home Automation",
-    description: `A smart home system where agents control different devices.
-- 'Light' and 'Thermostat' agents manage ambient conditions. They discover and use device controls through an MCP Server.
-- The 'MCP Server' acts as a universal integration bridge, exposing tools like 'setBrightness', 'getTemperature', and 'setThermostat'. It provides a secure client-server model for all device interactions.
-- A 'Security' agent monitors cameras and sensors, using an MCP Server tool to arm/disarm the system securely.
-- A central 'HomeOrchestrator' agent manages high-level commands ("Movie Time"), using MCP to discover available device-control tools and orchestrating the 'Light' and 'Thermostat' agents via A2A protocol to execute the scene.
-Agents operate with high autonomy; MCP ensures secure and standardized access to all home hardware.`,
+    label: "智能家居自动化",
+    description: `一个智能体控制不同设备的智能家居系统。
+    - '灯光'和'温控器'智能体管理环境条件。它们通过 MCP 服务器发现并使用设备控制。
+    - 'MCP 服务器'充当通用集成桥梁，公开如 'setBrightness'、'getTemperature' 和 'setThermostat' 等工具。它为所有设备交互提供安全的客户端-服务器模型。
+    - 一个'安全'智能体监控摄像头和传感器，使用 MCP 服务器工具来安全地武装/解除系统。
+    - 一个中央'家居编排器'智能体管理高级命令（"电影时间"），使用 MCP 发现可用的设备控制工具，并通过 A2A 协议编排'灯光'和'温控器'智能体来执行场景。
+    智能体以高自主性运行；MCP 确保对所有家庭硬件的安全和标准化访问。`,
   },
   {
     value: "healthcare-diagnosis",
-    label: "Medical Diagnosis Assistant",
-    description: `An AI assistant that helps doctors with preliminary diagnosis.
-- An 'MCP Server' provides secure, audited access to critical tools and data. Its tools include a 'PatientRecordAPI' (for FHIR data) and a 'MedicalKnowledgeDB' (for research papers, drug info). MCP enforces strict authentication and authorization.
-- A 'PatientData' agent ingests real-time data and uses the 'PatientRecordAPI' tool via MCP to fetch historical records.
-- A 'SymptomAnalysis' agent uses a foundation model and receives patient data via A2A, then uses the 'MedicalKnowledgeDB' tool via MCP to cross-reference symptoms.
-- A 'Reporting' agent communicates with other agents via A2A to gather findings and compile a summary for the doctor.
-The system's security hinges on MCP's ability to provide a secure bridge to sensitive data, with dynamic access control.`,
+    label: "医疗诊断助手",
+    description: `一个帮助医生进行初步诊断的 AI 助手。
+    - 一个 'MCP 服务器'提供对关键工具和数据的安全、审计访问。其工具包括用于 FHIR 数据的 'PatientRecordAPI' 和用于研究论文、药物信息的 'MedicalKnowledgeDB'。MCP 强制执行严格的身份验证和授权。
+    - 一个'患者数据'智能体获取实时数据并使用 'PatientRecordAPI' 工具通过 MCP 获取历史记录。
+    - 一个'症状分析'智能体使用基础模型并接收通过 A2A 的患者数据，然后使用 'MedicalKnowledgeDB' 工具通过 MCP 交叉引用症状。
+    - 一个'报告'智能体通过 A2A 与其他智能体通信以收集发现的结果并为医生编译摘要。
+    - 系统的安全性取决于 MCP 为敏感数据提供安全桥梁的能力，并具有动态访问控制。`,
   },
   {
     value: "logistics-optimization",
-    label: "Supply Chain Logistics",
-    description: `A system to optimize a company's supply chain.
-- 'Inventory' and 'Fleet' agents are deployed at warehouses and in trucks, providing real-time data streams.
-- An 'MCP Server' integrates data from various sources. It offers tools like 'getInventoryLevels(warehouseID)' and 'getTruckStatus(fleetID)'.
-- 'Order' agents process new customer orders and use an MCP tool to check inventory.
-- A central 'Logistics' agent uses A2A to receive order details and then queries MCP tools to get a real-time snapshot of the entire supply chain. It then runs optimization algorithms to schedule deliveries.
-MCP provides a unified, real-time data integration layer, while A2A is used for task delegation and status updates between agents.`,
+    label: "供应链物流",
+    description: `一个优化公司供应链的系统。
+    - '库存'和'车队'智能体部署在仓库和卡车上，提供实时数据流。
+    - 一个 'MCP 服务器'集成来自各种来源的数据。它提供如 'getInventoryLevels(warehouseID)' 和 'getTruckStatus(fleetID)' 等工具。
+    - '订单'智能体处理新客户订单并使用 MCP 工具检查库存。
+    - 一个中央'物流'智能体使用 A2A 接收订单详细信息，然后查询 MCP 工具获取整个供应链的实时快照。它随后运行优化算法来安排交付。
+    - MCP 提供统一的实时数据集成层，而 A2A 用于智能体之间的任务委托和状态更新。`,
   },
   {
     value: "financial-trading",
-    label: "Automated Financial Trading",
-    description: `A high-frequency trading system.
-- An 'MCP Server' provides universal, high-speed tool integration. It exposes a 'MarketDataStream' tool, an 'ExecuteTrade' tool, and a 'RiskAnalysis' tool. MCP's secure, low-latency client-server model is critical.
-- 'MarketData' agents subscribe to the 'MarketDataStream' tool via MCP for real-time prices.
-- 'Analysis' agents receive market data via A2A and use complex models to identify trading opportunities.
-- 'Trading' agents are instructed by Analysis agents via A2A and use the 'ExecuteTrade' MCP tool to place orders.
-- A 'RiskManagement' agent constantly uses the 'RiskAnalysis' tool via MCP to monitor portfolio exposure and can use A2A to command the 'Trading' agent to halt activity.
-The system operates in a 'no trust boundary' environment, and MCP provides the secure, performant bridge to critical trading functions.`,
+    label: "自动金融交易",
+    description: `一个高频交易系统。
+    - 一个 'MCP 服务器'提供通用的、高速工具集成。它公开 'MarketDataStream' 工具、'ExecuteTrade' 工具和 'RiskAnalysis' 工具。MCP 的安全、低延迟客户端-服务器模型至关重要。
+    - '市场数据'智能体订阅 'MarketDataStream' 工具通过 MCP 以获取实时价格。
+    - '分析'智能体通过 A2A 接收市场数据并使用复杂模型识别交易机会。
+    - '交易'智能体由分析智能体通过 A2A 指示并使用 'ExecuteTrade' MCP 工具下订单。
+    - '风险管理'智能体通过 MCP 持续使用 'RiskAnalysis' 工具监控投资组合敞口，并可以使用 A2A 命令'交易'智能体停止活动。
+    - 系统在'无信任边界'环境中运行，MCP 为关键交易功能提供安全、高性能桥梁。`,
   },
   {
     value: "google-a2a-calendar",
-    label: "Google A2A: Calendar Agent",
-    description: `An example of Google's Agent-to-Agent communication.
-- A 'User' agent interacts with the user to understand scheduling requests.
-- A 'Calendar' agent, represented by an agent card JSON file, has the capability to interact with Google Calendar. This capability is exposed as a tool.
-- The 'User' agent discovers the 'Calendar' agent's capabilities via its public card (A2A capability discovery).
-- The User agent then delegates the task of creating, modifying, or querying calendar events to the Calendar agent using the A2A protocol for task management.
-- The interaction relies on a standardized communication protocol for agent discovery, secure delegation, and multimodal data exchange.`,
+    label: "Google A2A: 日历智能体",
+    description: `一个 Google 智能体到智能体通信的示例。
+    - 一个'用户'智能体与用户交互以了解日程请求。
+    - 一个'日历'智能体，由智能体卡 JSON 文件表示，具有与 Google 日历交互的能力。此能力作为工具公开。
+    - '用户'智能体通过其公开卡（A2A 能力发现）发现'日历'智能体的能力。
+    - 用户智能体随后将创建、修改或查询日历事件的任务委托给日历智能体，使用 A2A 协议进行任务管理。
+    - 交互依赖于标准化的通信协议进行智能体发现、安全委托和多模态数据交换。`,
   },
   {
     value: "mcp-server-tool",
-    label: "Code Interpreter with MCP",
-    description: `A system using a Model Context Protocol (MCP) Server for sandboxed code execution.
-- A 'Developer' agent takes coding tasks from a user.
-- The agent writes Python code to solve the task.
-- It then uses an MCP Server tool, which is a sandboxed code interpreter. The MCP server provides a secure client-server model (e.g., JSON-RPC over HTTP) to send the code and receive results.
-- The agent receives the output, error, or session updates (for long-running code) from the MCP tool and presents it to the user.
-MCP's primary role here is to provide a secure, universal bridge to an external computation service, abstracting the sandbox environment from the agent itself.`,
+    label: "代码解释器与 MCP",
+    description: `一个使用模型上下文协议（MCP）服务器进行沙箱代码执行的系统。
+    - 一个'开发者'智能体从用户接收编码任务。
+    - 智能体编写 Python 代码来完成任务。
+    - 然后它使用一个 MCP 服务器工具，它是一个沙箱化代码解释器。MCP 服务器提供安全的客户端-服务器模型（例如，HTTP 上的 JSON-RPC）来发送代码并接收结果。
+    - 智能体从 MCP 工具接收输出、错误或会话更新（用于长时间运行的代码）并将其呈现给用户。
+    - MCP 在这里的主要作用是为外部计算服务提供安全的、通用桥梁，从智能体本身抽象沙箱环境。`,
   },
   {
     value: "collaborative-writing",
-    label: "Collaborative Document Writing",
-    description: `A system where multiple agents collaborate to write a document.
-- An 'MCP Server' manages access to the shared document context and external tools. It offers tools like 'getDocument', 'updateSection', and a 'WebSearchAPI'.
-- An 'Orchestrator' agent manages the workflow, using A2A to assign tasks to other agents.
-- A 'Drafting' agent is tasked via A2A, gets the document outline using the 'getDocument' tool via MCP, and generates text.
-- A 'Research' agent is asked via A2A to find facts. It uses the 'WebSearchAPI' tool via MCP and then updates the document with the 'updateSection' tool.
-- An 'Editing' agent refines grammar and style by getting and updating sections via MCP tools.
-MCP provides the shared memory and toolset, while A2A handles the collaborative workflow.`,
+    label: "协作文档编写",
+    description: `一个多个智能体协作编写文档的系统。
+    - 一个 'MCP 服务器'管理对共享文档上下文和外部工具的访问。它提供如 'getDocument'、'updateSection' 和 'WebSearchAPI' 等工具。
+    - 一个'编排器'智能体管理工作流，使用 A2A 将任务分配给其他智能体。
+    - 一个'起草'智能体通过 A2A 被分配任务，使用 'getDocument' 工具通过 MCP 获取文档大纲并生成文本。
+    - 一个'研究'智能体通过 A2A 被要求查找事实。它通过 MCP 使用 'WebSearchAPI' 工具，然后使用 'updateSection' 工具通过 MCP 更新文档。
+    - 一个'编辑'智能体通过获取和更新部分通过 MCP 工具来完善语法和风格。
+    - MCP 提供共享内存和工具集，而 A2A 处理协作工作流。`,
   },
   {
     value: "customer-support-system",
-    label: "Multi-level Customer Support",
-    description: `A tiered customer support system.
-- An 'MCP Server' provides access to a 'KnowledgeBase' tool and a 'CustomerCRM' tool. It uses a secure client-server model to enforce different access levels for each tool.
-- A 'Tier1' agent handles common queries using the 'KnowledgeBase' tool via MCP.
-- If unable to resolve, it uses A2A to escalate to a 'Tier2' agent. The A2A protocol handles the task delegation and state transfer.
-- The 'Tier2' agent has permissions to use the 'CustomerCRM' tool via MCP to access specific customer data.
-- An 'HumanEscalation' agent can delegate the conversation to a human support representative if needed.
-MCP is crucial for managing secure, capability-based access to data, while A2A manages the escalation workflow between agents.`,
+    label: "多级客户支持",
+    description: `一个分层客户支持系统。
+    - 一个 'MCP 服务器'提供对 'KnowledgeBase' 工具和 'CustomerCRM' 工具的访问。它使用安全的客户端-服务器模型为每个工具强制执行不同的访问级别。
+    - 一个'一级'智能体使用 'KnowledgeBase' 工具通过 MCP 处理常见查询。
+    - 如果无法解决，它使用 A2A 升级到'二级'智能体。A2A 协议处理任务委托和状态转换。
+    - 一个'二级'智能体有权通过 MCP 使用 'CustomerCRM' 工具访问特定的客户数据。
+    - 一个'人工接驳'智能体可以根据需要将对话委托给人工支持代表。
+    - MCP 对于管理对数据的安全、基于能力的访问至关重要，而 A2A 管理智能体之间的升级工作流。`,
   },
 ];

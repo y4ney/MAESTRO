@@ -20,9 +20,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Download, Terminal, ToyBrick } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ApiSettingsPanel } from "@/components/api-settings-panel";
+import type { APIConfigData } from "@/app/api-config";
 import { Spinner } from "@/components/icons";
 import { MermaidDiagram } from "@/components/mermaid-diagram";
 
+// 初始化层级数据
 const INITIAL_LAYERS: LayerData[] = MAESTRO_LAYERS.map((layer) => ({
   ...layer,
   threat: null,
@@ -30,16 +34,17 @@ const INITIAL_LAYERS: LayerData[] = MAESTRO_LAYERS.map((layer) => ({
   status: "pending",
 }));
 
-const MAESTRO_METHODOLOGY_SUMMARY = `This report applies the MAESTRO (Multi-Agent Environment, Security, Threat, Risk, and Outcome) framework for agentic AI threat modeling. MAESTRO provides a structured, seven-layer approach to systematically analyze and mitigate security risks in multi-agent systems. It addresses both traditional security vulnerabilities and novel threats arising from agentic factors like autonomy, non-determinism, and complex agent-to-agent interactions. The following sections detail the analysis for each layer based on the provided system architecture.
+// MAESTRO 方法论摘要
+const MAESTRO_METHODOLOGY_SUMMARY = `本报告采用 MAESTRO（Multi-Agent Environment, Security, Threat, Risk, and Outcome）框架进行智能体 AI 威胁建模。MAESTRO 提供了一种结构化的七层方法，用于系统分析和缓解多智能体系统中的安全风险。它既解决了传统安全漏洞，也解决了由自主性、非确定性等智能体因素和复杂的智能体间交互带来的新型威胁。以下部分详细说明了基于提供的系统架构的每一层分析。
 
-For more details on the framework, visit: https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro`;
+如需了解框架详情，请访问：https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro`;
 
 
 export default function Home() {
   const [layers, setLayers] = React.useState<LayerData[]>(INITIAL_LAYERS);
   const [isAnalyzing, setIsAnalyzing] = React.useState(false);
   const [isDownloading, setIsDownloading] = React.useState(false);
-  const [buttonText, setButtonText] = React.useState("Generate Analysis");
+  const [buttonText, setButtonText] = React.useState("生成分析");
   const [logs, setLogs] = React.useState<string[]>([]);
   const logsContainerRef = React.useRef<HTMLDivElement>(null);
   const analysisCancelledRef = React.useRef(false);
@@ -48,29 +53,58 @@ export default function Home() {
   const [mermaidCode, setMermaidCode] = React.useState<string>("");
   const [isGeneratingDiagram, setIsGeneratingDiagram] = React.useState(false);
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
+  const [apiConfig, setApiConfig] = React.useState<APIConfigData | null>(null);
 
 
+  // 自动滚动日志到底部
   React.useEffect(() => {
     if (logsContainerRef.current) {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
   }, [logs]);
 
+  // 组件挂载时从 localStorage 加载 API 配置
+  React.useEffect(() => {
+    const saved = localStorage.getItem('apiConfig');
+    if (saved) {
+      try {
+        setApiConfig(JSON.parse(saved));
+      } catch (e) {
+        console.error("解析保存的 API 配置失败:", e);
+      }
+    }
+
+    // 监听来自设置面板的配置更改
+    const handleConfigChange = (e: Event) => {
+      const customEvent = e as CustomEvent<APIConfigData | null>;
+      setApiConfig(customEvent.detail);
+    };
+
+    window.addEventListener('apiConfigChanged', handleConfigChange);
+    return () => {
+      window.removeEventListener('apiConfigChanged', handleConfigChange);
+    };
+  }, []);
+
+  // 添加日志
   const addLog = (message: string) => {
     setLogs((prevLogs) => [...prevLogs, message]);
   };
 
+  // 更新层级状态
   const updateLayerStatus = (layerId: string, status: LayerData["status"]) => {
     setLayers((prev) =>
       prev.map((l) => (l.id === layerId ? { ...l, status } : l))
     );
   };
 
+  // 停止分析
   const handleStop = () => {
     analysisCancelledRef.current = true;
-    addLog("Analysis stop requested. Finishing current step...");
+    addLog("已请求停止分析。完成当前步骤...");
   };
 
+  // 开始分析
   const handleAnalyze = async (architectureDescription: string) => {
     analysisCancelledRef.current = false;
     setIsAnalyzing(true);
@@ -78,45 +112,46 @@ export default function Home() {
     setExecutiveSummary(null);
     setLogs([]);
     setLayers(INITIAL_LAYERS);
-    // Note: We are intentionally NOT clearing the mermaidCode here
-    // to keep the diagram persistent across analyses.
-    addLog("Starting MAESTRO threat analysis...");
+    // 注意：我们故意不在这里清除 mermaidCode，
+    // 以保持图表在分析之间保持持久化。
+    addLog("正在开始 MAESTRO 威胁分析...");
 
     let finalLayers: LayerData[] = [];
 
     for (const layer of MAESTRO_LAYERS) {
       if (analysisCancelledRef.current) {
-        addLog(`Analysis stopped by user.`);
+        addLog(`用户已停止分析。`);
         break;
       }
       try {
-        setButtonText(`Analyzing: ${layer.name}`);
-        addLog(`[${layer.name}] Analysis started...`);
+        setButtonText(`正在分析: ${layer.name}`);
+        addLog(`[${layer.name}] 分析已开始...`);
         updateLayerStatus(layer.id, "analyzing");
 
         if (analysisCancelledRef.current) continue;
-        addLog(`[${layer.name}] Calling AI to suggest threats...`);
+        addLog(`[${layer.name}] 正在调用 AI 建议威胁...`);
         const threatResult = await suggestThreat(
           architectureDescription,
           layer.name,
-          layer.description
+          layer.description,
+          apiConfig || undefined
         );
         const threat = threatResult.threatAnalysis;
 
         if (analysisCancelledRef.current) {
-           addLog(`[${layer.name}] Analysis stopped before mitigation step.`);
+           addLog(`[${layer.name}] 在缓解步骤之前停止了分析。`);
            updateLayerStatus(layer.id, "error");
            continue;
-        };
-        addLog(`[${layer.name}] Threat analysis received.`);
+        }
+        addLog(`[${layer.name}] 已收到威胁分析。`);
         setLayers((prev) =>
           prev.map((l) => (l.id === layer.id ? { ...l, threat } : l))
         );
 
         if (analysisCancelledRef.current) continue;
-        addLog(`[${layer.name}] Calling AI for mitigation strategies...`);
-        const mitigation = await recommendMitigation(threat, layer.name);
-        addLog(`[${layer.name}] Mitigation recommendation received.`);
+        addLog(`[${layer.name}] 正在调用 AI 获取缓解策略...`);
+        const mitigation = await recommendMitigation(threat, layer.name, apiConfig || undefined);
+        addLog(`[${layer.name}] 已收到缓解建议。`);
         setLayers((prev) => {
           const newLayers = prev.map((l) =>
             l.id === layer.id ? { ...l, mitigation, status: "complete" as const } : l
@@ -125,60 +160,62 @@ export default function Home() {
           return newLayers;
         });
 
-        addLog(`[${layer.name}] Analysis complete.`);
+        addLog(`[${layer.name}] 分析完成。`);
       } catch (error) {
         if (!analysisCancelledRef.current) {
-          console.error(`Error analyzing layer ${layer.name}:`, error);
-          const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-          addLog(`[${layer.name}] Error: ${errorMessage}`);
+          console.error(`分析层级 ${layer.name} 时出错:`, error);
+          const errorMessage = error instanceof Error ? error.message : "发生了未知错误。";
+          addLog(`[${layer.name}] 错误: ${errorMessage}`);
           updateLayerStatus(layer.id, "error");
         }
       }
     }
 
     if (!analysisCancelledRef.current && finalLayers.some(l => l.status === 'complete')) {
-        addLog("Generating executive summary...");
+        addLog("正在生成执行摘要...");
         try {
-            const summaryResult = await getExecutiveSummary(architectureDescription, finalLayers);
+            const summaryResult = await getExecutiveSummary(architectureDescription, finalLayers, apiConfig || undefined);
             setExecutiveSummary(summaryResult.summary);
-            addLog("Executive summary generated.");
+            addLog("执行摘要已生成。");
         } catch (error) {
-            console.error("Error generating executive summary:", error);
-            addLog("Could not generate executive summary.");
+            console.error("生成执行摘要时出错:", error);
+            addLog("无法生成执行摘要。");
         }
     }
-    
-    setButtonText("Generate Analysis");
+
+    setButtonText("生成分析");
     if (!analysisCancelledRef.current) {
-      addLog("Full analysis complete.");
+      addLog("完整分析已完成。");
     }
     setIsAnalyzing(false);
   };
 
+  // 生成架构图
   const handleGenerateDiagram = async () => {
     if (!currentArchitecture) {
-      addLog("Please provide an architecture description first.");
+      addLog("请先提供架构描述。");
       return;
     }
     setIsGeneratingDiagram(true);
-    addLog("Generating architecture diagram...");
+    addLog("正在生成架构图...");
     try {
-      const result = await getArchitectureDiagram(currentArchitecture);
+      const result = await getArchitectureDiagram(currentArchitecture, apiConfig || undefined);
       setMermaidCode(result.mermaidCode);
-      addLog("Diagram generated successfully.");
+      addLog("架构图已成功生成。");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      addLog(`Diagram generation failed: ${errorMessage}`);
-      console.error("Diagram Generation Error:", error);
+      const errorMessage = error instanceof Error ? error.message : "发生了未知错误。";
+      addLog(`架构图生成失败: ${errorMessage}`);
+      console.error("架构图生成错误:", error);
     } finally {
       setIsGeneratingDiagram(false);
     }
   };
-  
+
+  // 下载 PDF 报告
   const handleDownloadPdf = async () => {
     setIsDownloading(true);
-    addLog("PDF generation started...");
-    
+    addLog("PDF 生成已开始...");
+
     try {
         const doc = new jsPDF({unit: "px", format: "letter"});
         const margin = 30;
@@ -187,6 +224,7 @@ export default function Home() {
         const usableWidth = pageWidth - margin * 2;
         let y = margin;
 
+        // 文本选项接口
         interface TextOptions {
             size?: number;
             style?: 'normal' | 'bold' | 'italic' | 'bolditalic';
@@ -195,15 +233,16 @@ export default function Home() {
             color?: number;
         }
 
+        // 添加文本
         const addText = (text: string, options: TextOptions = {}) => {
             const { size = 10, style = 'normal', x = margin, align = 'left', color = 0 } = options;
 
             doc.setFontSize(size);
             doc.setFont("helvetica", style);
             doc.setTextColor(color);
-            
+
             const lines = doc.splitTextToSize(text, usableWidth - (x > margin ? (x - margin) : 0));
-            
+
             lines.forEach((line: string) => {
                 const textHeight = doc.getTextDimensions(line).h;
                 if (y + textHeight > pageHeight - margin) {
@@ -211,57 +250,57 @@ export default function Home() {
                     y = margin;
                 }
                 doc.text(line, x, y, { align: align || 'left' });
-                y += textHeight * 1.15; // Add line spacing
+                y += textHeight * 1.15; // 添加行间距
             });
         };
-        
-        addLog("Assembling PDF document...");
-        
-        // --- HEADER ---
-        addText("MAESTRO Threat Analysis Report", { size: 20, style: "bold", align: "center", x: pageWidth / 2 });
+
+        addLog("正在组装 PDF 文档...");
+
+        // --- 页眉 ---
+        addText("MAESTRO 威胁分析报告", { size: 20, style: "bold", align: "center", x: pageWidth / 2 });
         y += 10;
-    
-        // --- DISCLAIMER & DEVELOPER INFO ---
-        addText("Developed by: DistributedApps.ai", { size: 8, color: 150 });
+
+        // --- 免责声明与开发者信息 ---
+        addText("开发者: DistributedApps.ai", { size: 8, color: 150 });
         y += 12;
 
-        const disclaimer = "This report is generated by an AI assistant based on the MAESTRO framework. AI can make mistakes; always double-check threats and mitigations with a security expert.";
+        const disclaimer = "本报告由 AI 助手基于 MAESTRO 框架生成。AI 可能会犯错；请始终与安全专家一起检查威胁和缓解措施。";
         addText(disclaimer, { size: 8, color: 100 });
         y += 20;
 
-        // --- ARCHITECTURE DESCRIPTION ---
+        // --- 架构描述 ---
         if (currentArchitecture) {
-            addText("Analyzed System Architecture", { size: 16, style: "bold" });
+            addText("已分析的系统架构", { size: 16, style: "bold" });
             y+= 6;
             addText(currentArchitecture, { size: 10, color: 80 });
             y += 10;
         }
 
-        // --- ARCHITECTURE DIAGRAM ---
+        // --- 架构图 ---
         if (mermaidCode && diagramContainerRef.current) {
-          addLog("Adding diagram to PDF...");
+          addLog("正在将图表添加到 PDF...");
           y += 10;
-          if (y + 200 > pageHeight - margin) { // Check if space for diagram
+          if (y + 200 > pageHeight - margin) { // 检查是否有图表空间
               doc.addPage();
               y = margin;
           }
-          addText("Architecture Diagram", { size: 16, style: "bold" });
+          addText("架构图", { size: 16, style: "bold" });
           y += 6;
-          
+
           const svgElement = diagramContainerRef.current.querySelector('svg');
           if (svgElement) {
               const svgData = new XMLSerializer().serializeToString(svgElement);
               const canvas = document.createElement("canvas");
               const ctx = canvas.getContext("2d");
               const svgSize = svgElement.getBoundingClientRect();
-              canvas.width = svgSize.width * 2; // Increase resolution
+              canvas.width = svgSize.width * 2; // 提高分辨率
               canvas.height = svgSize.height * 2;
               canvas.style.width = `${svgSize.width}px`;
               canvas.style.height = `${svgSize.height}px`;
-              
+
               const img = new Image();
               img.src = "data:image/svg+xml;base64," + btoa(svgData);
-              
+
               await new Promise<void>((resolve) => {
                   img.onload = () => {
                       ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -274,63 +313,63 @@ export default function Home() {
                   };
               });
           } else {
-              addLog("Could not find rendered SVG for diagram.");
+              addLog("找不到图表的渲染 SVG。");
           }
         }
 
-        // --- EXECUTIVE SUMMARY ---
-        addText("Executive Summary", { size: 16, style: "bold" });
+        // --- 执行摘要 ---
+        addText("执行摘要", { size: 16, style: "bold" });
         y+= 6;
         const summaryToUse = executiveSummary || MAESTRO_METHODOLOGY_SUMMARY;
         addText(summaryToUse.replace(/###\s|##\s|#\s|\*\*/g, ''), { size: 10, color: 80 });
         y += 16;
-    
-        // --- LAYER-BY-LAYER ANALYSIS ---
+
+        // --- 逐层分析 ---
         layers.forEach((layer) => {
-            if (y + 60 > pageHeight - margin) { // Pre-emptive page break check
+            if (y + 60 > pageHeight - margin) { // 预防性分页检查
               doc.addPage();
               y = margin;
             }
-    
+
             doc.setDrawColor(220);
             doc.line(margin, y, pageWidth - margin, y);
             y += 16;
-    
+
             addText(layer.name, { size: 14, style: "bold" });
             y += 4;
-    
+
             if (layer.status === "pending" || layer.status === 'analyzing') {
-                addText("Pending AI investigation...", { size: 10, style: "italic", color: 150 });
+                addText("等待 AI 调查...", { size: 10, style: "italic", color: 150 });
             } else if (layer.status === 'error') {
-                addText("An error occurred during analysis.", { size: 10, style: "italic", color: 200 });
+                addText("分析过程中发生错误。", { size: 10, style: "italic", color: 200 });
             } else if (layer.threat && layer.mitigation) {
-                addText("Identified Threats", { size: 12, style: "bold" });
+                addText("已识别的威胁", { size: 12, style: "bold" });
                 addText(layer.threat.replace(/###\s|##\s|#\s|\*\*/g, ''), { size: 10, color: 80 });
                 y += 8;
-    
-                addText("Mitigation Strategy", { size: 12, style: "bold" });
-                
-                addText("Recommendation:", { size: 10, style: "bold", x: margin + 4 });
+
+                addText("缓解策略", { size: 12, style: "bold" });
+
+                addText("建议:", { size: 10, style: "bold", x: margin + 4 });
                 addText(layer.mitigation.recommendation, { size: 10, x: margin + 8, color: 80});
                 y += 4;
-    
-                addText("Reasoning:", { size: 10, style: "bold", x: margin + 4});
+
+                addText("推理:", { size: 10, style: "bold", x: margin + 4});
                 addText(layer.mitigation.reasoning, { size: 10, x: margin + 8, color: 80 });
                 y += 4;
-    
-                addText("Caveats:", { size: 10, style: "bold", x: margin + 4 });
+
+                addText("注意事项:", { size: 10, style: "bold", x: margin + 4 });
                 addText(layer.mitigation.caveats, { size: 10, x: margin + 8, color: 80 });
             }
             y += 10;
         });
-    
-        addLog("Saving PDF file...");
-        doc.save("MAESTRO_Threat_Analysis.pdf");
-        addLog("PDF report saved successfully.");
+
+        addLog("正在保存 PDF 文件...");
+        doc.save("MAESTRO_威胁分析.pdf");
+        addLog("PDF 报告已成功保存。");
     } catch(error) {
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during PDF generation.";
-        addLog(`PDF Generation Error: ${errorMessage}`);
-        console.error("PDF Generation Error:", error);
+        const errorMessage = error instanceof Error ? error.message : "PDF 生成过程中发生未知错误。";
+        addLog(`PDF 生成错误: ${errorMessage}`);
+        console.error("PDF 生成错误:", error);
     } finally {
         setIsDownloading(false);
     }
@@ -348,15 +387,26 @@ export default function Home() {
           </div>
         </SidebarHeader>
         <SidebarContent className="p-0">
-          <SidebarInputForm
-            onAnalyze={handleAnalyze}
-            onStop={handleStop}
-            isAnalyzing={isAnalyzing}
-            buttonText={buttonText}
-            onDescriptionChange={(desc) => {
-              setCurrentArchitecture(desc);
-            }}
-          />
+          <Tabs defaultValue="input" className="flex flex-col h-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="input">输入</TabsTrigger>
+              <TabsTrigger value="settings">设置</TabsTrigger>
+            </TabsList>
+            <TabsContent value="input" className="flex-grow overflow-auto p-0">
+              <SidebarInputForm
+                onAnalyze={handleAnalyze}
+                onStop={handleStop}
+                isAnalyzing={isAnalyzing}
+                buttonText={buttonText}
+                onDescriptionChange={(desc) => {
+                  setCurrentArchitecture(desc);
+                }}
+              />
+            </TabsContent>
+            <TabsContent value="settings" className="flex-grow overflow-auto">
+              <ApiSettingsPanel />
+            </TabsContent>
+          </Tabs>
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
@@ -366,10 +416,10 @@ export default function Home() {
               <SidebarTrigger className="md:hidden" />
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold font-headline tracking-tight">
-                  Threat Analyzer
+                  威胁分析器
                 </h1>
                 <p className="text-muted-foreground">
-                  AI-Powered Threat Analysis for Multi-Agent Systems
+                  多智能体系统的 AI 驱动威胁分析
                 </p>
               </div>
             </div>
@@ -379,7 +429,7 @@ export default function Home() {
                 ) : (
                   <Download className="mr-2 h-4 w-4" />
                 )}
-              Download PDF Report
+              下载 PDF 报告
             </Button>
           </div>
 
@@ -388,7 +438,7 @@ export default function Home() {
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
                   <Terminal className="h-5 w-5 text-muted-foreground"/>
-                  <CardTitle className="text-base font-medium">Analysis Progress</CardTitle>
+                  <CardTitle className="text-base font-medium">分析进度</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-40 w-full rounded-md border bg-muted/50 p-4">
@@ -409,11 +459,11 @@ export default function Home() {
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <div className="flex items-center gap-2">
                     <ToyBrick className="h-5 w-5 text-muted-foreground"/>
-                    <CardTitle className="text-base font-medium">Architecture Diagram</CardTitle>
+                    <CardTitle className="text-base font-medium">架构图</CardTitle>
                   </div>
                   <Button size="sm" onClick={handleGenerateDiagram} disabled={isGeneratingDiagram || !currentArchitecture}>
                     {isGeneratingDiagram && <Spinner className="mr-2 h-4 w-4" />}
-                    Generate
+                    生成
                   </Button>
                 </CardHeader>
                 <CardContent>
@@ -421,21 +471,21 @@ export default function Home() {
                       {isGeneratingDiagram ? (
                           <div className="text-center text-muted-foreground">
                               <Spinner className="h-6 w-6 mx-auto mb-2" />
-                              <p className="text-sm">AI is generating the diagram...</p>
+                              <p className="text-sm">AI 正在生成图表...</p>
                           </div>
                       ) : mermaidCode ? (
                           <MermaidDiagram code={mermaidCode} />
                       ) : (
                           <div className="text-center text-muted-foreground">
-                              <p className="text-sm">Click &apos;Generate&apos; to create a diagram</p>
-                              <p className="text-xs">from the architecture description.</p>
+                              <p className="text-sm">点击 &apos;生成&apos; 创建图表</p>
+                              <p className="text-xs">基于架构描述。</p>
                           </div>
                       )}
                   </div>
                 </CardContent>
               </Card>
             </div>
-            
+
             {layers.map((layer) => (
               <div key={layer.id} className="lg:col-span-4 md:col-span-6">
                 <LayerCard layer={layer} />

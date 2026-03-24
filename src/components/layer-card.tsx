@@ -30,25 +30,26 @@ interface LayerCardProps {
 }
 
 export function LayerCard({ layer }: LayerCardProps) {
+  // 获取状态徽章
   const getStatusBadge = () => {
     switch (layer.status) {
       case "pending":
-        return <Badge variant="secondary">Pending</Badge>;
+        return <Badge variant="secondary">待处理</Badge>;
       case "analyzing":
         return (
           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
             <Spinner className="mr-1 h-3 w-3" />
-            Analyzing...
+            分析中...
           </Badge>
         );
       case "complete":
         return (
           <Badge className="bg-primary/20 text-primary-foreground dark:bg-primary/30 dark:text-primary-foreground">
-            Complete
+            完成
           </Badge>
         );
       case "error":
-        return <Badge variant="destructive">Error</Badge>;
+        return <Badge variant="destructive">错误</Badge>;
     }
   };
 
@@ -59,7 +60,7 @@ export function LayerCard({ layer }: LayerCardProps) {
           <div>
             <CardTitle className="font-headline text-xl">{layer.name}</CardTitle>
             <CardDescription className="mt-1">
-              MAESTRO Layer Analysis
+              MAESTRO 层级分析
             </CardDescription>
           </div>
           {getStatusBadge()}
@@ -69,14 +70,14 @@ export function LayerCard({ layer }: LayerCardProps) {
         {layer.status === "analyzing" && (
           <div className="flex flex-col items-center justify-center flex-grow text-muted-foreground">
             <Spinner className="h-8 w-8 mb-2" />
-            <p>AI is analyzing threats...</p>
+            <p>AI 正在分析威胁...</p>
           </div>
         )}
 
         {layer.status === "error" && (
            <div className="flex flex-col items-center justify-center flex-grow text-destructive">
              <XCircle className="h-8 w-8 mb-2" />
-             <p>Analysis failed</p>
+             <p>分析失败</p>
            </div>
         )}
 
@@ -86,7 +87,7 @@ export function LayerCard({ layer }: LayerCardProps) {
               <AccordionTrigger className="font-semibold">
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="h-5 w-5 text-destructive" />
-                  Identified Threats
+                  已识别的威胁
                 </div>
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground prose prose-sm dark:prose-invert max-w-none">
@@ -97,7 +98,7 @@ export function LayerCard({ layer }: LayerCardProps) {
               <AccordionTrigger className="font-semibold">
                  <div className="flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-primary" />
-                  Mitigation Strategy
+                  缓解策略
                 </div>
               </AccordionTrigger>
               <AccordionContent>
@@ -105,7 +106,7 @@ export function LayerCard({ layer }: LayerCardProps) {
                   <div>
                     <h4 className="font-semibold flex items-center gap-2 mb-1">
                       <ShieldCheck className="h-4 w-4 text-primary" />
-                      Recommendation
+                      建议
                     </h4>
                     <p className="text-muted-foreground text-sm">
                       {layer.mitigation.recommendation}
@@ -114,7 +115,7 @@ export function LayerCard({ layer }: LayerCardProps) {
                   <div>
                     <h4 className="font-semibold flex items-center gap-2 mb-1">
                       <Lightbulb className="h-4 w-4 text-yellow-500" />
-                      Reasoning
+                      推理
                     </h4>
                     <p className="text-muted-foreground text-sm">
                       {layer.mitigation.reasoning}
@@ -123,7 +124,7 @@ export function LayerCard({ layer }: LayerCardProps) {
                   <div>
                     <h4 className="font-semibold flex items-center gap-2 mb-1">
                       <AlertTriangle className="h-4 w-4 text-accent" />
-                      Caveats
+                      注意事项
                     </h4>
                     <p className="text-muted-foreground text-sm">
                       {layer.mitigation.caveats}

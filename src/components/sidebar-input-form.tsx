@@ -32,10 +32,10 @@ const formSchema = z.object({
   architectureDescription: z
     .string()
     .min(50, {
-      message: "Architecture description must be at least 50 characters.",
+      message: "架构描述必须至少 50 个字符。",
     })
     .max(5000, {
-      message: "Description must not be longer than 5000 characters.",
+      message: "描述不能超过 5000 个字符。",
     }),
   preset: z.string().optional(),
 });
@@ -65,7 +65,7 @@ export function SidebarInputForm({
 
   const archDescription = form.watch("architectureDescription");
   React.useEffect(() => {
-      onDescriptionChange(archDescription);
+    onDescriptionChange(archDescription);
   }, [archDescription, onDescriptionChange]);
 
 
@@ -73,6 +73,7 @@ export function SidebarInputForm({
     onAnalyze(values.architectureDescription);
   }
 
+  // 处理预设变更
   const handlePresetChange = (value: string) => {
     const selectedUseCase = USE_CASES.find((uc) => uc.value === value);
     if (selectedUseCase) {
@@ -93,7 +94,7 @@ export function SidebarInputForm({
             name="preset"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Use-Case Presets</FormLabel>
+                <FormLabel>使用案例预设</FormLabel>
                 <Select
                   onValueChange={handlePresetChange}
                   defaultValue={field.value}
@@ -101,7 +102,7 @@ export function SidebarInputForm({
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a preset use-case" />
+                      <SelectValue placeholder="选择预设用例" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -113,7 +114,7 @@ export function SidebarInputForm({
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  Select a preset to auto-populate the description.
+                  选择预设以自动填充描述。
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -125,18 +126,17 @@ export function SidebarInputForm({
             name="architectureDescription"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Architecture Description</FormLabel>
+                <FormLabel>架构描述</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Describe your system architecture in detail..."
+                    placeholder="详细描述您的系统架构..."
                     className="resize-none h-64"
                     {...field}
                     disabled={isAnalyzing}
                   />
                 </FormControl>
                 <FormDescription>
-                  Provide a detailed description for a precise AI threat
-                  analysis.
+                  提供详细描述以进行精确的 AI 威胁分析。
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -147,7 +147,7 @@ export function SidebarInputForm({
            {isAnalyzing ? (
               <Button type="button" variant="destructive" className="w-full" onClick={onStop}>
                 <X className="mr-2 h-4 w-4" />
-                Stop Analysis
+                停止分析
               </Button>
             ) : (
               <Button type="submit" className="w-full" disabled={isAnalyzing}>

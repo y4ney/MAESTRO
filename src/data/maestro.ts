@@ -1,37 +1,37 @@
 export const MAESTRO_LAYERS = [
   {
     id: 'foundation-models',
-    name: 'Foundation Models',
-    description: 'Core AI models (e.g., large language models, custom-trained AI).',
+    name: '基础模型',
+    description: '核心 AI 模型（例如，大语言模型、定制训练的 AI）。',
   },
   {
     id: 'data-operations',
-    name: 'Data Operations',
-    description: 'Data handling for agents, including storage, processing, and vector embeddings.',
+    name: '数据操作',
+    description: '为智能体处理数据，包括存储、处理和向量嵌入。',
   },
   {
     id: 'agent-frameworks',
-    name: 'Agent Frameworks',
-    description: 'Software frameworks and APIs used to create, orchestrate, and manage agents.',
+    name: '智能体框架',
+    description: '用于创建、编排和管理智能体的软件框架和 API。',
   },
   {
     id: 'deployment-infrastructure',
-    name: 'Deployment & Infrastructure',
-    description: 'Servers, networks, containers, and the underlying resources hosting agents and APIs.',
+    name: '部署与基础设施',
+    description: '托管智能体和 API 的服务器、网络、容器和底层资源。',
   },
   {
     id: 'evaluation-observability',
-    name: 'Evaluation & Observability',
-    description: 'Systems to monitor, evaluate, and debug agent behavior.',
+    name: '评估与可观测性',
+    description: '用于监控、评估和调试智能体行为的系统。',
   },
   {
     id: 'security-compliance',
-    name: 'Security & Compliance',
-    description: 'Security controls and compliance measures for the entire agent system.',
+    name: '安全与合规',
+    description: '整个智能体系统的安全控制和合规措施。',
   },
   {
     id: 'agent-ecosystem',
-    name: 'Agent Ecosystem',
-    description: 'The broader environment where multiple agents interact, collaborate, and potentially compete.',
+    name: '智能体生态系统',
+    description: '多个智能体交互、协作，可能竞争的更广泛环境。',
   },
 ] as const;
